@@ -1,25 +1,29 @@
 const connect = require("../connect");
-const dbName = "insertMany";
 let client;
-
 let DB;
+
+const close = () => {
+  if (!client) return;
+  client.close();
+};
 
 const getDB = async (dbName = null) => {
   if (!DB && !dbName) throw new Error("一回もＤＢ指定されたいない！");
   if (DB && !dbName) return DB;
-
-  try {
-    client = await connect.connect();
-    DB = client.db(dbName);
-    console.log("connect db");
-  } catch (err) {
-    console.log(err.stack);
-  }
+  if (!client)
+    try {
+      client = await connect.connect();
+      DB = client.db(dbName);
+      console.log("connect db");
+    } catch (err) {
+      console.log(err.stack);
+    }
   return DB;
 };
 
 const setDB = async (dbName = null) => {
   if (!dbName) throw new Error("dbName指定されたいない！");
+  DB = null;
   await getDB(dbName);
 };
 
@@ -28,9 +32,9 @@ const insert = async (table = null, contants = null) => {
   return await DB.collection(table).insertMany(contants);
 };
 
-const update = async (table = null) => {
+const update = async (table = null, filter, update, options) => {
   checkTable(table);
-  const col = DB.collection(table);
+  return await DB.collection(table).updateMany(filter, update, options);
 };
 
 const checkTable = (table = null) => {
@@ -50,7 +54,7 @@ const select = async (
   i_fields = null,
   i_limit = null
 ) => {
-  if (table) throw new Error("tebleName 指定されたいない！");
+  if (!table) throw new Error("tebleName 指定されたいない！");
   if (!DB) throw new Error("setDBは事前に実行されたいない！");
 
   const query = i_query || {};
@@ -68,5 +72,6 @@ module.exports = {
   select,
   insert,
   update,
-  remove
+  remove,
+  close
 };
